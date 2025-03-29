@@ -97,24 +97,34 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/send-code', async (req, res) => {
-    const { email } = req.body;
-
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
-
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await user.update({ verification_code: code });
-
-    await transporter.sendMail({
+    try {
+      // 🛡️ Token'dan email al
+      const authHeader = req.headers.authorization
+      if (!authHeader) return res.status(401).json({ error: 'Token eksik' })
+  
+      const token = authHeader.split(' ')[1]
+      const decoded = jwt.verify(token, JWT_SECRET)
+      const email = decoded.email
+  
+      const user = await User.findOne({ where: { email } })
+      if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' })
+  
+      const code = Math.floor(100000 + Math.random() * 900000).toString()
+      await user.update({ verification_code: code })
+  
+      await transporter.sendMail({
         from: '"RetainX" <noreply@retainx.com>',
         to: email,
         subject: 'E-posta Doğrulama Kodunuz',
         html: `<p>Merhaba,</p><p>Doğrulama kodunuz: <strong>${code}</strong></p>`
-    });
-
-    res.json({ message: 'Kod gönderildi' });
-});
+      })
+  
+      res.json({ message: 'Kod gönderildi' })
+    } catch (err) {
+      console.error('SEND-CODE ERROR:', err)
+      res.status(500).json({ error: 'Kod gönderilemedi' })
+    }
+  })
 
 router.post('/verify-code', async (req, res) => {
     const { email, code } = req.body;

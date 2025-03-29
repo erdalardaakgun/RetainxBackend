@@ -31,6 +31,10 @@ const User = sequelize.define('User', {
   password_reset_code: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  plan: {
+    type: DataTypes.ENUM('free', 'enterprise', 'growth', 'starter'),
+    defaultValue: 'free'
   }
 }, {
   tableName: 'users',
